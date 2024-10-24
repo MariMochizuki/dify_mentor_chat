@@ -38,7 +38,7 @@ export default function HomePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          inputs: { start: query, course: selectedCourse },
+          inputs: { start: query, course: selectedCourse, question: "プログラミングについて" },
           response_mode: "blocking",
           conversation_id: conversationId,
           user: USER_ID,
@@ -64,22 +64,28 @@ export default function HomePage() {
     }
   };
 
+  // マークダウンリンクやコードブロックを処理する関数
   const renderResponseText = (text) => {
     const codeRegex = /```(.*?)\n([\s\S]*?)```/g;
+    const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g;
+
     const parts = [];
     let lastIndex = 0;
     let match;
 
     while ((match = codeRegex.exec(text)) !== null) {
       if (lastIndex < match.index) {
-        const normalText = text
-          .slice(lastIndex, match.index)
-          .replace(/\n/g, "<br />");
+        const segment = text.slice(lastIndex, match.index).replace(/\n/g, "<br />");
+
+        const linkedSegment = segment.replace(markdownLinkRegex, (_, label, url) => {
+          return `<a href="${url}" target="_blank" class="text-blue-500 underline">${label}</a>`;
+        });
+
         parts.push(
           <p
             key={lastIndex}
             className="text-white text-lg"
-            dangerouslySetInnerHTML={{ __html: normalText }}
+            dangerouslySetInnerHTML={{ __html: linkedSegment }}
           />
         );
       }
@@ -101,10 +107,18 @@ export default function HomePage() {
     }
 
     if (lastIndex < text.length) {
+      const remainingSegment = text.slice(lastIndex).replace(/\n/g, "<br />");
+
+      const linkedRemainingSegment = remainingSegment.replace(markdownLinkRegex, (_, label, url) => {
+        return `<a href="${url}" target="_blank" class="text-blue-500 underline">${label}</a>`;
+      });
+
       parts.push(
-        <p key={lastIndex} className="text-white text-lg">
-          {text.slice(lastIndex)}
-        </p>
+        <p
+          key={lastIndex}
+          className="text-white text-lg"
+          dangerouslySetInnerHTML={{ __html: linkedRemainingSegment }}
+        />
       );
     }
 
@@ -149,7 +163,9 @@ export default function HomePage() {
           >
             <option value="">コースを選択してください</option>
             <option value="Python初級">Python初級</option>
+            <option value="Python中級">Python中級</option>
             <option value="Unity初級">Unity初級</option>
+            <option value="Unity中級">Unity中級</option>
           </select>
           <textarea
             value={query}
